@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Maven: com.google.cloud:google-cloud-core-http:1.93.7">
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/com/google/cloud/google-cloud-core-http/1.93.7/google-cloud-core-http-1.93.7.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$MAVEN_REPOSITORY$/com/google/cloud/google-cloud-core-http/1.93.7/google-cloud-core-http-1.93.7-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$MAVEN_REPOSITORY$/com/google/cloud/google-cloud-core-http/1.93.7/google-cloud-core-http-1.93.7-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
