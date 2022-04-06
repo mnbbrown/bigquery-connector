@@ -1,10 +1,16 @@
-package io.matthewbrown.io.flink.connectors.bigquery;
+package io.matthewbrown.flink.bigquery;
 
 import java.io.Serializable;
 
 public class BigQueryOptions implements Serializable {
     private String projectId;
     private String tableName;
+
+    BigQueryOptions() {}
+    BigQueryOptions(String projectId, String tableName) {
+        this.projectId = projectId;
+        this.tableName = tableName;
+    }
 
     public void setProjectId(String projectId) {
         this.projectId = projectId;

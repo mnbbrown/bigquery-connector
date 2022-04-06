@@ -1,1 +1,1 @@
-io.matthewbrown.io.flink.connectors.bigquery.BigQueryTableSourceFactory
+io.matthewbrown.flink.bigquery.BigQueryTableSourceFactory

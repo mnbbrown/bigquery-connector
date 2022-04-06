@@ -1,14 +1,17 @@
-package io.matthewbrown.io.flink.connectors.bigquery;
+package io.matthewbrown.flink.bigquery;
 
 import org.apache.flink.table.catalog.ResolvedSchema;
 import org.apache.flink.table.connector.ChangelogMode;
 import org.apache.flink.table.connector.source.DynamicTableSource;
 import org.apache.flink.table.connector.source.InputFormatProvider;
 import org.apache.flink.table.connector.source.ScanTableSource;
+import org.apache.flink.table.connector.source.abilities.SupportsLimitPushDown;
+import org.apache.flink.table.types.logical.RowType;
 
-public class BigQueryTableSource implements ScanTableSource {
+public class BigQueryTableSource implements ScanTableSource, SupportsLimitPushDown {
     private final BigQueryOptions options;
     private final ResolvedSchema schema;
+    private long limit;
 
     public BigQueryTableSource(BigQueryOptions options, ResolvedSchema schema) {
         this.options = options;
@@ -22,13 +25,13 @@ public class BigQueryTableSource implements ScanTableSource {
 
     @Override
     public ScanRuntimeProvider getScanRuntimeProvider(ScanContext runtimeProviderContext) {
-        return InputFormatProvider.of(
-                new BigQueryRowDataInputFormat(
-                        options,
-                        schema,
-                        runtimeProviderContext.createTypeInformation(this.schema.toPhysicalRowDataType())
-                )
+        BigQueryRowDataInputFormat inputFormat = new BigQueryRowDataInputFormat(
+            options,
+            (RowType) schema.toPhysicalRowDataType().getLogicalType()
         );
+        inputFormat.setProducedType(runtimeProviderContext.createTypeInformation(this.schema.toPhysicalRowDataType()));
+
+        return InputFormatProvider.of(inputFormat);
     }
 
 
@@ -40,5 +43,10 @@ public class BigQueryTableSource implements ScanTableSource {
     @Override
     public String asSummaryString() {
         return "BigQuery";
+    }
+
+    @Override
+    public void applyLimit(long limit) {
+        this.limit = limit;
     }
 }

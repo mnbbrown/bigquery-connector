@@ -1,4 +1,4 @@
-package io.matthewbrown.io.flink.connectors.bigquery;
+package io.matthewbrown.flink.bigquery;
 
 import org.apache.flink.configuration.ConfigOption;
 import static org.apache.flink.configuration.ConfigOptions.key;

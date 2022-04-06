@@ -1,4 +1,4 @@
-package io.matthewbrown.io.flink.connectors.bigquery;
+package io.matthewbrown.flink.bigquery;
 
 import com.google.cloud.bigquery.storage.v1.*;
 import org.apache.avro.Schema;
@@ -16,40 +16,39 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.io.GenericInputSplit;
 import org.apache.flink.core.io.InputSplit;
 import org.apache.flink.core.io.InputSplitAssigner;
-import org.apache.flink.table.catalog.Column;
-import org.apache.flink.table.catalog.ResolvedSchema;
-import org.apache.flink.table.data.GenericRowData;
 import org.apache.flink.table.data.RowData;
-import org.apache.flink.types.RowKind;
+import org.apache.flink.table.types.logical.RowType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.List;
-import java.util.stream.Collectors;
 
 public class BigQueryRowDataInputFormat extends RichInputFormat<RowData, InputSplit> implements ResultTypeQueryable<RowData> {
 
+    private static final Logger LOG = LoggerFactory.getLogger(BigQueryRowDataInputFormat.class);
+
     private transient boolean hasNext = false;
-    private final TypeInformation<RowData> typeInformation;
+
+    private TypeInformation<RowData> typeInformation;
+    private final RowType rowType;
     private Iterator<ReadRowsResponse> stream;
-    private final List<String> columns;
     private final BigQueryOptions options;
 
     private BinaryDecoder decoder = null;
     private DatumReader<GenericRecord> datumReader = null;
     private BigQueryReadClient client = null;
+    private BigQueryTypeHelpers.Converter converter = null;
 
-    public BigQueryRowDataInputFormat(BigQueryOptions options, ResolvedSchema schema, TypeInformation<RowData> typeInformation) {
+    public BigQueryRowDataInputFormat(BigQueryOptions options, RowType rowType) {
         this.options = options;
-        this.columns = schema.getColumns().stream().map(Column::getName).collect(Collectors.toList());
-        this.typeInformation = typeInformation;
+        this.rowType = rowType;
     }
 
     @Override
     public void configure(Configuration configuration) {
         // no-op
     }
-
 
     @Override
     public void openInputFormat() {
@@ -63,9 +62,10 @@ public class BigQueryRowDataInputFormat extends RichInputFormat<RowData, InputSp
 
     @Override
     public void open(InputSplit inputSplit) throws IOException {
+        LOG.debug("opening split " + inputSplit.getSplitNumber());
         client = BigQueryReadClient.create();
         ReadSession.TableReadOptions.Builder tableReadOptionsBuilder = ReadSession.TableReadOptions.newBuilder();
-        for (String c : columns) {
+        for (String c : this.rowType.getFieldNames()) {
             tableReadOptionsBuilder.addSelectedFields(c);
         }
 
@@ -91,18 +91,22 @@ public class BigQueryRowDataInputFormat extends RichInputFormat<RowData, InputSp
         String avroSchema = session.getAvroSchema().getSchema();
         Schema schema = new Schema.Parser().parse(avroSchema);
         datumReader = new GenericDatumReader<>(schema);
+        converter = BigQueryTypeHelpers.createNullableConverter(rowType, schema);
 
         // start
         hasNext = stream.hasNext();
+        LOG.debug("opened split " + inputSplit.getSplitNumber());
     }
 
     @Override
     public boolean reachedEnd() {
+        LOG.debug("reachedEnd: " + !this.hasNext);
         return !this.hasNext;
     }
 
     @Override
     public RowData nextRecord(RowData reuse) throws IOException {
+        LOG.debug("loading next record");
         GenericRecord result;
         if ( decoder != null && ! decoder.isEnd() ) {
             result = datumReader.read(null, decoder);
@@ -116,18 +120,10 @@ public class BigQueryRowDataInputFormat extends RichInputFormat<RowData, InputSp
                 hasNext = false;
             }
         }
-        if (result == null) {
-            return null;
-        }
 
-        List<Schema.Field> fields = result.getSchema().getFields();
-        GenericRowData rowData = new GenericRowData(RowKind.INSERT, result.getSchema().getFields().size());
-
-        for (Schema.Field f: fields) {
-            int pos = this.columns.indexOf(f.name());
-            rowData.setField(pos, result.get(f.name()));
-        }
-        return rowData;
+        RowData converted = (RowData) this.converter.convert(result);
+        LOG.debug("emitting record: " + converted);
+        return converted;
     }
 
     private void fetchNextAvroRows() {
@@ -143,6 +139,7 @@ public class BigQueryRowDataInputFormat extends RichInputFormat<RowData, InputSp
     @Override
     public void close() {
         if (client != null && !client.isShutdown()) {
+            LOG.debug("closing client");
             client.close();
         }
     }
@@ -150,6 +147,10 @@ public class BigQueryRowDataInputFormat extends RichInputFormat<RowData, InputSp
     @Override
     public TypeInformation<RowData> getProducedType() {
         return typeInformation;
+    }
+
+    public void setProducedType(TypeInformation<RowData> typeInformation) {
+        this.typeInformation = typeInformation;
     }
 
     @Override

@@ -12,12 +12,22 @@
     <packaging>jar</packaging>
 
     <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
         <google-cloud-libraries-bom.version>8.1.0</google-cloud-libraries-bom.version>
         <flink.version>1.14.3</flink.version>
-    </properties>
+        <github.global.server>github</github.global.server>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+      </properties>
+
+        <distributionManagement>
+           <repository>
+             <id>github</id>
+             <name>GitHub mnbbrown Apache Maven Packages</name>
+             <url>https://maven.pkg.github.com/mnbbrown/bigquery-connector</url>
+           </repository>
+        </distributionManagement>
 
     <dependencyManagement>
         <dependencies>
@@ -33,6 +43,7 @@
     </dependencyManagement>
 
     <dependencies>
+
         <dependency>
             <groupId>com.google.cloud</groupId>
             <artifactId>google-cloud-bigquerystorage</artifactId>
@@ -40,6 +51,23 @@
         <dependency>
             <groupId>com.google.cloud</groupId>
             <artifactId>google-cloud-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>joda-time</groupId>
+            <artifactId>joda-time</artifactId>
+            <version>2.10.14</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.avro</groupId>
+            <artifactId>avro</artifactId>
+            <version>1.11.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>2.13.2</version>
         </dependency>
 
         <dependency>
@@ -55,11 +83,11 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- https://mvnrepository.com/artifact/org.apache.avro/avro -->
         <dependency>
-            <groupId>org.apache.avro</groupId>
-            <artifactId>avro</artifactId>
-            <version>1.11.0</version>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+            <version>5.8.2</version>
         </dependency>
     </dependencies>
 
