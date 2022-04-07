@@ -4,12 +4,14 @@ import java.io.Serializable;
 
 public class BigQueryOptions implements Serializable {
     private String projectId;
+    private String datasetName;
     private String tableName;
 
     BigQueryOptions() {}
-    BigQueryOptions(String projectId, String tableName) {
+    BigQueryOptions(String projectId, String datasetName, String tableName) {
         this.projectId = projectId;
         this.tableName = tableName;
+        this.datasetName = datasetName;
     }
 
     public void setProjectId(String projectId) {
@@ -20,13 +22,20 @@ public class BigQueryOptions implements Serializable {
         this.tableName = tableName;
     }
 
+    public String getDatasetName() {
+        return datasetName;
+    }
+
+    public void setDatasetName(String datasetName) {
+        this.datasetName = datasetName;
+    }
+
     public String getTableName() {
         return tableName;
     }
 
     public String getFullyQualifiedTableName() {
-        String[] parts = tableName.split("\\.");
-        return "projects/" + getProjectId() + "/datasets/" + parts[0] + "/tables/" + parts[1];
+        return "projects/" + getProjectId() + "/datasets/" + getDatasetName() + "/tables/" + getTableName();
     }
 
     public String getProjectId() {
