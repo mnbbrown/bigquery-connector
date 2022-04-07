@@ -17,12 +17,14 @@ import org.apache.flink.core.io.GenericInputSplit;
 import org.apache.flink.core.io.InputSplit;
 import org.apache.flink.core.io.InputSplitAssigner;
 import org.apache.flink.table.data.RowData;
+import org.apache.flink.table.expressions.ResolvedExpression;
 import org.apache.flink.table.types.logical.RowType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.List;
 
 public class BigQueryRowDataInputFormat extends RichInputFormat<RowData, InputSplit> implements ResultTypeQueryable<RowData> {
 
@@ -34,14 +36,16 @@ public class BigQueryRowDataInputFormat extends RichInputFormat<RowData, InputSp
     private final RowType rowType;
     private Iterator<ReadRowsResponse> stream;
     private final BigQueryOptions options;
+    private final BigQueryReadOptions readOptions;
 
     private BinaryDecoder decoder = null;
     private DatumReader<GenericRecord> datumReader = null;
     private BigQueryReadClient client = null;
     private BigQueryTypeHelpers.Converter converter = null;
 
-    public BigQueryRowDataInputFormat(BigQueryOptions options, RowType rowType) {
+    public BigQueryRowDataInputFormat(BigQueryOptions options, BigQueryReadOptions readOptions, RowType rowType) {
         this.options = options;
+        this.readOptions = readOptions;
         this.rowType = rowType;
     }
 
@@ -64,9 +68,13 @@ public class BigQueryRowDataInputFormat extends RichInputFormat<RowData, InputSp
     public void open(InputSplit inputSplit) throws IOException {
         LOG.debug("opening split " + inputSplit.getSplitNumber());
         client = BigQueryReadClient.create();
+
         ReadSession.TableReadOptions.Builder tableReadOptionsBuilder = ReadSession.TableReadOptions.newBuilder();
-        for (String c : this.rowType.getFieldNames()) {
-            tableReadOptionsBuilder.addSelectedFields(c);
+        // query fields
+        tableReadOptionsBuilder.addAllSelectedFields(this.rowType.getFieldNames());
+        // apply restrictions
+        for (String filter : readOptions.getFilters()) {
+            tableReadOptionsBuilder.setRowRestriction(filter);
         }
 
         ReadSession.Builder sessionBuilder =
